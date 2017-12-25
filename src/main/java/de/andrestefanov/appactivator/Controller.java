@@ -7,6 +7,7 @@ import org.simplejavamail.mailer.config.ServerConfig;
 import org.simplejavamail.mailer.config.TransportStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -34,9 +35,25 @@ public class Controller {
 
     private File successBody = new File("/opt/appactivator/success.html");
 
-    public Controller() {
+    private AppConfig config;
+
+    private Mailer mailer;
+
+    @Autowired
+    public Controller(AppConfig config) {
+        this.config = config;
+
+        this.mailer =  new Mailer(
+                new ServerConfig(
+                        config.getEmailServer(),
+                        Integer.valueOf(config.getEmailPort()),
+                        config.getEmailUsername(),
+                        config.getEmailPassword()),
+                TransportStrategy.SMTP_TLS
+        );
+
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://fcm.googleapis.com/v1/projects/" + FCM_PROJECT + "/")
+                .baseUrl("https://fcm.googleapis.com/v1/projects/" + config.getFcmProject() + "/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
@@ -67,7 +84,7 @@ public class Controller {
                 notification.message.data = new PushNotification.Message.Data();
                 notification.message.data.activation = "activated";
 
-                Response<Void> response = firebase.sendMessage(getAccessToken(), FCM_PROJECT, notification).execute();
+                Response<Void> response = firebase.sendMessage(getAccessToken(), config.getFcmProject(), notification).execute();
 
                 if (response.isSuccessful()) {
                     return new ResponseEntity<>(fileContentToString(successBody), HttpStatus.OK);
@@ -82,7 +99,7 @@ public class Controller {
     }
 
     private String getAccessToken() throws IOException {
-        File serviceAccountFile = new File("/opt/appactivator/service-account.json");
+        File serviceAccountFile = new File("/run/secrets/service-account.json");
 
         GoogleCredential googleCredential = GoogleCredential
                 .fromStream(new FileInputStream(serviceAccountFile))
@@ -91,35 +108,27 @@ public class Controller {
         return "Bearer " + googleCredential.getAccessToken();
     }
 
-    private static boolean validateEmailAddress(String emailAddress) {
+    private boolean validateEmailAddress(String emailAddress) {
         return (!StringUtils.isEmpty(emailAddress) &&
                VALID_EMAIL_ADDRESS_REGEX.matcher(emailAddress).find() &&
-                (!StringUtils.isEmpty(EMAIL_REGEX) && emailAddress.matches(EMAIL_REGEX))) ||
-                (DEBUG_EMAIL != null && DEBUG_EMAIL.equals(emailAddress));
+                emailAddress.endsWith(config.getEmailValidatorSuffix())) ||
+                (!StringUtils.isEmpty(config.debugMailAdress()) && config.debugMailAdress().equals(emailAddress));
     }
 
     private void sendMail(String address, String token) {
         Email email = new Email();
 
-        email.setFromAddress(SENDER_NAME, SENDER_EMAIL);
+        email.setFromAddress(config.getSenderName(), config.getSenderAddress());
         email.addToRecipients(address);
 
-        email.setSubject(EMAIL_SUBJECT);
+        email.setSubject(config.getEmailSubject());
         try {
             email.setTextHTML(fileContentToString(emailBody).replace("USER_PUSH_TOKEN", token));
         } catch (IOException e) {
             logger.warn("Failed to load email.html");
-
         }
 
-        new Mailer(
-                new ServerConfig(
-                        SENDER_SMTP_SERVER,
-                        Integer.valueOf(SENDER_SMTP_PORT),
-                        SENDER_USERNAME,
-                        SENDER_PASSWORD),
-                TransportStrategy.SMTP_TLS
-        ).sendMail(email);
+        this.mailer.sendMail(email);
     }
 
     private String fileContentToString(File file) throws IOException {
