@@ -3,7 +3,7 @@ import com.bmuschko.gradle.docker.tasks.image.Dockerfile
 buildscript {
 	ext {
 		springBootVersion   = '1.5.8.RELEASE'
-        projectVersion      = '1.0.0'
+        projectVersion      = '1.0.1'
 	}
 	repositories {
 		mavenCentral()
