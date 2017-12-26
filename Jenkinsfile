@@ -10,8 +10,4 @@ node {
     stage ('Build app') {
         sh "./gradlew build"
     }
-
-    stage ('Create Dockerfile') {
-        sh "./gradlew createDockerfile"
-    }
 }
