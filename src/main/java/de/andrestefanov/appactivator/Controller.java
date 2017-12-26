@@ -63,8 +63,10 @@ public class Controller {
     @RequestMapping(value = "/validate", method = RequestMethod.POST)
     public ResponseEntity<?> validate(@RequestParam String email, @RequestParam String token) {
         if (!validateEmailAddress(email)) {
+            logger.debug("provided email " + email + " is not valid");
             return new ResponseEntity<>("invalid email", HttpStatus.BAD_REQUEST);
-        } else if (!StringUtils.isEmpty(token)) {
+        } else if (StringUtils.isEmpty(token)) {
+            logger.debug("provided token " + token + " is not valid");
             return new ResponseEntity<>("invalid token", HttpStatus.BAD_REQUEST);
         } else {
             sendMail(email, token);
