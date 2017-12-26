@@ -24,7 +24,9 @@ deploy:
     tags: true
 
 after_success:
-  - if [ "$TRAVIS_BRANCH" == "master" ]; then
-    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
-    docker push andrestefanov/appactivator;
+  - if ([ "$TRAVIS_BRANCH" == "master" ] || [ ! -z "$TRAVIS_TAG" ]) && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+      docker login -u andrestefanov -p $DOCKER_PASSWORD;
+      docker push andrestefanov/appactivator;
+    else
+      echo "skipping docker hub deployment"
     fi
