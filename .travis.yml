@@ -9,7 +9,6 @@ services:
   - docker
 
 before_install:
-  - cp build/docker/Dockerfile Dockerfile
   - docker build -t andrestefanov/appactivator .
 
 deploy:
