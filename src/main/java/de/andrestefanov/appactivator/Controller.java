@@ -114,7 +114,7 @@ public class Controller {
         return (!StringUtils.isEmpty(emailAddress) &&
                VALID_EMAIL_ADDRESS_REGEX.matcher(emailAddress).find() &&
                 emailAddress.endsWith(config.getEmailValidatorSuffix())) ||
-                (!StringUtils.isEmpty(config.debugMailAdress()) && config.debugMailAdress().equals(emailAddress));
+                (!StringUtils.isEmpty(config.debugMailAddress()) && config.debugMailAddress().equals(emailAddress));
     }
 
     private void sendMail(String address, String token) {

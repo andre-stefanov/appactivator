@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@PropertySource("file:/run/secrets/kjr-app-activator.properties")
+@PropertySource(value = "file:/run/secrets/kjr-app-activator.properties", encoding = "UTF-8")
 public class AppConfig {
 
     private final Environment environment;
@@ -32,7 +32,7 @@ public class AppConfig {
         return environment.getProperty("fcm");
     }
 
-    public String debugMailAdress() {
+    public String debugMailAddress() {
         return environment.getProperty("debug.email");
     }
 
