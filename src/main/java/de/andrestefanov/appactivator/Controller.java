@@ -76,7 +76,7 @@ public class Controller {
 
     @RequestMapping(value = "/activate", method = RequestMethod.GET)
     public ResponseEntity<?> activate(@RequestParam String token) {
-        if (!StringUtils.isEmpty(token)) {
+        if (StringUtils.isEmpty(token)) {
             return new ResponseEntity<>("invalid token", HttpStatus.BAD_REQUEST);
         } else {
             try {
