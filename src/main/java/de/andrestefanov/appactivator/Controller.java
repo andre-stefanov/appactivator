@@ -64,10 +64,10 @@ public class Controller {
     public ResponseEntity<?> validate(@RequestParam String email, @RequestParam String token) {
         if (!validateEmailAddress(email)) {
             logger.debug("provided email " + email + " is not valid");
-            return new ResponseEntity<>("invalid email", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("invalid email: " + email, HttpStatus.BAD_REQUEST);
         } else if (StringUtils.isEmpty(token)) {
             logger.debug("provided token " + token + " is not valid");
-            return new ResponseEntity<>("invalid token", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("invalid token: " + token, HttpStatus.BAD_REQUEST);
         } else {
             sendMail(email, token);
             return new ResponseEntity<>(HttpStatus.OK);
@@ -77,7 +77,7 @@ public class Controller {
     @RequestMapping(value = "/activate", method = RequestMethod.GET)
     public ResponseEntity<?> activate(@RequestParam String token) {
         if (StringUtils.isEmpty(token)) {
-            return new ResponseEntity<>("invalid token", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("invalid token: " + token, HttpStatus.BAD_REQUEST);
         } else {
             try {
                 PushNotification notification = new PushNotification();
