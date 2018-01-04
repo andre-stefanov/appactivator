@@ -1,7 +1,7 @@
 buildscript {
 	ext {
 		springBootVersion   = '1.5.8.RELEASE'
-        projectVersion      = '1.0.7'
+        projectVersion      = '1.0.8'
 	}
 	repositories {
 		mavenCentral()
@@ -29,7 +29,6 @@ dependencies {
     compile("org.springframework.boot:spring-boot-starter-web") {
         exclude module: "spring-boot-starter-tomcat"
     }
-
     compile("org.springframework.boot:spring-boot-starter-jetty")
 	runtime('org.springframework.boot:spring-boot-devtools')
 
@@ -40,9 +39,6 @@ dependencies {
     compile 'com.google.api-client:google-api-client:1.23.0'
 
     compile 'org.simplejavamail:simple-java-mail:4.4.5'
-
-    compile 'log4j:log4j:1.2.17'
-    compile 'org.slf4j:slf4j-log4j12:1.8.0-beta0'
 
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 }

@@ -42,7 +42,6 @@ public class Controller {
     @Autowired
     public Controller(AppConfig config) {
         this.config = config;
-
         this.mailer =  new Mailer(
                 new ServerConfig(
                         config.getEmailServer(),
@@ -63,10 +62,10 @@ public class Controller {
     @RequestMapping(value = "/validate", method = RequestMethod.POST)
     public ResponseEntity<?> validate(@RequestParam String email, @RequestParam String token) {
         if (!validateEmailAddress(email)) {
-            logger.debug("provided email " + email + " is not valid");
+            logger.warn("provided email " + email + " is not valid");
             return new ResponseEntity<>("invalid email: " + email, HttpStatus.BAD_REQUEST);
         } else if (StringUtils.isEmpty(token)) {
-            logger.debug("provided token " + token + " is not valid");
+            logger.warn("provided token " + token + " is not valid");
             return new ResponseEntity<>("invalid token: " + token, HttpStatus.BAD_REQUEST);
         } else {
             sendMail(email, token);
