@@ -6,7 +6,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.env.Environment;
 
 @Configuration
-@PropertySource(value = "file:/run/secrets/kjr-app-activator.properties", encoding = "UTF-8", ignoreResourceNotFound = true)
+@PropertySource(value = "file:/run/secrets/kjr-app-activator.properties", encoding = "UTF-8")
 public class AppConfig {
 
     private final Environment environment;
