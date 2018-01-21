@@ -6,6 +6,6 @@ VOLUME ["/tmp"]
 
 EXPOSE 8080
 
-COPY ./build/libs/appactivator.jar /opt/appactivator/app.jar
+COPY ./build/libs/appactivator.jar app.jar
 
-ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "/opt/appactivator/app.jar"]
+ENTRYPOINT ["java", "-Djava.security.egd=file:/dev/./urandom", "-jar", "app.jar"]

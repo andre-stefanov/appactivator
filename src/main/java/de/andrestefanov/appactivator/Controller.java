@@ -1,13 +1,12 @@
 package de.andrestefanov.appactivator;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
-import org.simplejavamail.email.Email;
-import org.simplejavamail.mailer.Mailer;
-import org.simplejavamail.mailer.config.ServerConfig;
-import org.simplejavamail.mailer.config.TransportStrategy;
+import freemarker.template.Configuration;
+import freemarker.template.Template;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -22,8 +21,6 @@ import retrofit2.converter.gson.GsonConverterFactory;
 import java.io.*;
 import java.util.Collections;
 
-import static de.andrestefanov.appactivator.Application.*;
-
 @RestController
 public class Controller {
 
@@ -31,28 +28,20 @@ public class Controller {
 
     private FirebaseService firebase;
 
-    private File emailBody = new File("/opt/appactivator/email.html");
+    private final MailService mailService;
 
-    private File successBody = new File("/opt/appactivator/success.html");
+    private Configuration freeMarkerConfig;
 
-    private AppConfig config;
-
-    private Mailer mailer;
+    private FirebaseConfig firebaseConfig;
 
     @Autowired
-    public Controller(AppConfig config) {
-        this.config = config;
-        this.mailer =  new Mailer(
-                new ServerConfig(
-                        config.getEmailServer(),
-                        Integer.valueOf(config.getEmailPort()),
-                        config.getEmailUsername(),
-                        config.getEmailPassword()),
-                TransportStrategy.SMTP_TLS
-        );
+    public Controller(MailService mailService, FirebaseConfig firebaseConfig, @Qualifier("freeMarkerConfiguration") Configuration freeMarkerConfig) {
+        this.firebaseConfig = firebaseConfig;
+        this.mailService = mailService;
+        this.freeMarkerConfig = freeMarkerConfig;
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://fcm.googleapis.com/v1/projects/" + config.getFcmProject() + "/")
+                .baseUrl("https://fcm.googleapis.com/v1/projects/" + firebaseConfig.getProject() + "/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
@@ -60,15 +49,12 @@ public class Controller {
     }
 
     @RequestMapping(value = "/validate", method = RequestMethod.POST)
-    public ResponseEntity<?> validate(@RequestParam String email, @RequestParam String token) {
-        if (!validateEmailAddress(email)) {
-            logger.warn("provided email " + email + " is not valid");
-            return new ResponseEntity<>("invalid email: " + email, HttpStatus.BAD_REQUEST);
-        } else if (StringUtils.isEmpty(token)) {
+    public ResponseEntity<?> validate(@RequestParam String email, @RequestParam String token) throws Exception {
+        if (StringUtils.isEmpty(token)) {
             logger.warn("provided token " + token + " is not valid");
             return new ResponseEntity<>("invalid token: " + token, HttpStatus.BAD_REQUEST);
         } else {
-            sendMail(email, token);
+            mailService.prepareAndSendValidation(email, "token: " + token);
             return new ResponseEntity<>(HttpStatus.OK);
         }
     }
@@ -85,10 +71,11 @@ public class Controller {
                 notification.message.data = new PushNotification.Message.Data();
                 notification.message.data.activation = "activated";
 
-                Response<Void> response = firebase.sendMessage(getAccessToken(), config.getFcmProject(), notification).execute();
+                Response<Void> response = firebase.sendMessage(getAccessToken(), firebaseConfig.getProject(), notification).execute();
 
                 if (response.isSuccessful()) {
-                    return new ResponseEntity<>(fileContentToString(successBody), HttpStatus.OK);
+                    Template template = freeMarkerConfig.getTemplate("success.ftl");
+                    return new ResponseEntity<>(template.toString(), HttpStatus.OK);
                 } else {
                     return new ResponseEntity<>(response.message(), HttpStatus.valueOf(response.code()));
                 }
@@ -100,60 +87,12 @@ public class Controller {
     }
 
     private String getAccessToken() throws IOException {
-        File serviceAccountFile = new File("/run/secrets/service-account.json");
+        File serviceAccountFile = new File(firebaseConfig.getConfig());
 
         GoogleCredential googleCredential = GoogleCredential
                 .fromStream(new FileInputStream(serviceAccountFile))
                 .createScoped(Collections.singletonList("https://www.googleapis.com/auth/firebase.messaging"));
         googleCredential.refreshToken();
         return "Bearer " + googleCredential.getAccessToken();
-    }
-
-    private boolean validateEmailAddress(String emailAddress) {
-        return (!StringUtils.isEmpty(emailAddress) &&
-               VALID_EMAIL_ADDRESS_REGEX.matcher(emailAddress).find() &&
-                emailAddress.endsWith(config.getEmailValidatorSuffix())) ||
-                (!StringUtils.isEmpty(config.debugMailAddress()) && config.debugMailAddress().equals(emailAddress));
-    }
-
-    private void sendMail(String address, String token) {
-        Email email = new Email();
-
-        email.setFromAddress(config.getSenderName(), config.getSenderAddress());
-        email.addToRecipients(address);
-
-        email.setSubject(config.getEmailSubject());
-        try {
-            email.setTextHTML(fileContentToString(emailBody).replace("USER_PUSH_TOKEN", token));
-        } catch (IOException e) {
-            logger.warn("Failed to load email.html");
-        }
-
-        this.mailer.sendMail(email);
-    }
-
-    private String fileContentToString(File file) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        String content;
-        InputStreamReader isr = null;
-        BufferedReader br = null;
-        try {
-            isr = new InputStreamReader(new FileInputStream(file));
-            br = new BufferedReader(isr);
-            while ((content = br.readLine()) != null) {
-                sb.append(content);
-            }
-        } catch (IOException ioe) {
-            logger.error("Failed to read file", ioe);
-            throw ioe;
-        } finally {
-            if (isr != null)
-                isr.close();
-
-            if (br != null)
-                br.close();
-        }
-
-        return sb.toString();
     }
 }
