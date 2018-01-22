@@ -54,7 +54,7 @@ public class Controller {
             logger.warn("provided token " + token + " is not valid");
             return new ResponseEntity<>("invalid token: " + token, HttpStatus.BAD_REQUEST);
         } else {
-            mailService.prepareAndSendValidation(email, "token: " + token);
+            mailService.prepareAndSendValidation(email, token);
             return new ResponseEntity<>(HttpStatus.OK);
         }
     }
